@@ -129,7 +129,7 @@ const Console = ({
           <Link
             onClick={() => {
               client?.socket.disconnect();
-              reset();
+              // reset();
             }}
             sx={{
               cursor: "pointer",

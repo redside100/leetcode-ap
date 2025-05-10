@@ -42,6 +42,7 @@ function App() {
       }
       setMessageHistory((prev) => [...prev, message]);
     });
+    client.current.socket.on("disconnected", () => reset());
   }, []);
 
   useEffect(() => {
