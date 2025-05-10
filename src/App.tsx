@@ -69,8 +69,8 @@ function App() {
     if (socketUrl && slot && username && apKey) {
       setLoading(true);
       const options = password
-        ? { password, tags: ["HintGame"] }
-        : { tags: ["HintGame"] };
+        ? { password, tags: ["HintGame", "DeathLink"] }
+        : { tags: ["HintGame", "DeathLink"] };
       client.current
         ?.login(socketUrl, slot, undefined, options)
         .then(() => {

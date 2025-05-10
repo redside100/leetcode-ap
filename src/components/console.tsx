@@ -1,8 +1,20 @@
-import { Box, Link, TextField, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  Checkbox,
+  Link,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import type { Client } from "archipelago.js";
 import { useEffect, useRef, useState } from "react";
 import { getLatestLeetcodeSubmissions } from "../lcApi";
 import toast, { Toaster } from "react-hot-toast";
+
+const getSubmissionKey = (submission: any) => {
+  return `${submission.titleSlug}-${submission.timestamp}`;
+};
+
 const Console = ({
   messageHistory,
   username,
@@ -20,8 +32,40 @@ const Console = ({
 }) => {
   const [message, setMessage] = useState<string>("");
   const lastRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
+  const submissionHistory = useRef<any[]>([]);
+  const isDeathlinkEnabled = useRef(true);
+
+  const initializeLeetcode = async () => {
+    const result = await getLatestLeetcodeSubmissions(username, apKey);
+    const [submissions, status] = result;
+    if (submissions === undefined) {
+      if (status === 401) {
+        toast(
+          "API authentication error while fetching Leetcode updates. Try disconnecting and make sure APKey is correct!",
+          {
+            position: "top-right",
+            style: {
+              fontFamily: '"TypoRoundRegular", sans-serif',
+              fontSize: "14px",
+            },
+          }
+        );
+      }
+      return;
+    }
+
+    submissionHistory.current = [...submissions];
+    initialized.current = true;
+  };
 
   const updateLeetcode = async () => {
+    if (!initialized.current) {
+      await initializeLeetcode();
+      return;
+    }
+
+    // fetch
     const result = await getLatestLeetcodeSubmissions(username, apKey);
     const [submissions, status] = result;
     if (submissions === undefined) {
@@ -41,54 +85,73 @@ const Console = ({
       return;
     }
 
-    const solvedProblems = JSON.parse(
-      localStorage.getItem("solvedProblems") ?? "[]"
+    const previousSubmissionKeys = submissionHistory.current.map((submission) =>
+      getSubmissionKey(submission)
     );
 
-    const oldSolvedCount = solvedProblems.length;
+    const previousSolvedSubmissionSlugs = submissionHistory.current
+      .filter((submission) => submission.statusDisplay === "Accepted")
+      .map((submission) => submission.titleSlug);
 
-    // first time running
-    if (solvedProblems.length === 0) {
-      submissions.forEach((submission: any) => {
-        solvedProblems.push(submission.titleSlug);
-      });
-      localStorage.setItem("solvedProblems", JSON.stringify(solvedProblems));
-      return;
-    }
+    const newSubmissions = submissions.filter(
+      (submission: any) =>
+        !previousSubmissionKeys.includes(getSubmissionKey(submission))
+    );
 
-    const newSolvedProblemNames: string[] = [];
-
-    // this is an update
-    submissions.forEach((submission: any) => {
-      if (!solvedProblems.includes(submission.titleSlug)) {
-        solvedProblems.push(submission.titleSlug);
-        newSolvedProblemNames.push(submission.title);
-      }
-    });
-
-    // new problems solved
-    if (solvedProblems.length > oldSolvedCount) {
-      client?.messages.say(
-        `Solved Leetcode problem(s): ${newSolvedProblemNames.join(",")}`
+    // we have new submissions - process them
+    if (newSubmissions.length > 0) {
+      // filter for accepted submissions for new problems
+      const acceptedSubmissions = newSubmissions.filter(
+        (submission: any) =>
+          submission.statusDisplay === "Accepted" &&
+          !previousSolvedSubmissionSlugs.includes(submission.titleSlug)
       );
-      const hintLocation =
-        client?.room.missingLocations[
-          Math.floor(
-            Math.random() * (client?.room.missingLocations.length ?? 0)
-          )
-        ];
-      if (hintLocation) {
-        client?.scout([hintLocation], 1);
+
+      // we count any new failed submission as a failure
+      const failedSubmissions = newSubmissions.filter(
+        (submission: any) => submission.statusDisplay !== "Accepted"
+      );
+
+      // handle accepted submissions (hints)
+      if (acceptedSubmissions.length > 0) {
+        client?.messages.say(
+          `Solved Leetcode problem(s): ${acceptedSubmissions
+            .map((submission: any) => submission.title)
+            .join(",")}`
+        );
+        const scrambledLocations =
+          client?.room.missingLocations.sort(() => Math.random() - 0.5) ?? [];
+
+        const hintLocations = scrambledLocations.slice(
+          0,
+          Math.min(acceptedSubmissions.length, scrambledLocations.length)
+        );
+
+        if (hintLocations.length > 0) {
+          client?.scout(hintLocations, 1);
+        }
+      }
+
+      // handle failures (only if death link is enabled)
+      if (failedSubmissions.length > 0 && isDeathlinkEnabled.current) {
+        const cause = failedSubmissions[0].statusDisplay;
+        client?.deathLink.sendDeathLink(
+          slot,
+          `Failed a Leetcode submission: ${cause}`
+        );
       }
     }
 
-    localStorage.setItem("solvedProblems", JSON.stringify(solvedProblems));
+    // update submission history
+    submissionHistory.current = [
+      ...submissionHistory.current,
+      ...newSubmissions,
+    ];
   };
 
   useEffect(() => {
+    initializeLeetcode();
     const interval = setInterval(updateLeetcode, 15000);
-    updateLeetcode();
-
     return () => clearInterval(interval);
   }, []);
 
@@ -202,6 +265,23 @@ const Console = ({
             }
           }}
         />
+        <Box display="flex" alignItems="center">
+          <Checkbox
+            defaultChecked
+            onChange={(_, checked) => (isDeathlinkEnabled.current = checked)}
+          />
+          <Tooltip
+            title={
+              <Typography>
+                If checked, failed submissions will trigger a death for all
+                players with DeathLink enabled.
+              </Typography>
+            }
+            arrow
+          >
+            <Typography>Death Link</Typography>
+          </Tooltip>
+        </Box>
       </Box>
     </>
   );
