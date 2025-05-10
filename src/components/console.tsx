@@ -10,7 +10,6 @@ const Console = ({
   socketUrl,
   slot,
   apKey,
-  reset,
 }: {
   messageHistory: string[];
   username: string;
@@ -18,7 +17,6 @@ const Console = ({
   socketUrl: string;
   slot: string;
   apKey: string;
-  reset: () => void;
 }) => {
   const [message, setMessage] = useState<string>("");
   const lastRef = useRef<HTMLDivElement>(null);
