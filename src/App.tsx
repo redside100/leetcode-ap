@@ -143,7 +143,6 @@ function App() {
       client={client.current}
       socketUrl={socketUrl ?? ""}
       slot={slot ?? ""}
-      reset={reset}
       apKey={apKey ?? ""}
     />
   );
