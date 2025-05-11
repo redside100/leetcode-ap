@@ -135,9 +135,13 @@ const Console = ({
       // handle failures (only if death link is enabled)
       if (failedSubmissions.length > 0 && isDeathlinkEnabled.current) {
         const cause = failedSubmissions[0].statusDisplay;
+        const failedTitle = failedSubmissions[0].title;
         client?.deathLink.sendDeathLink(
           slot,
           `Failed a Leetcode submission: ${cause}`
+        );
+        client?.messages.say(
+          `Failed a Leetcode submission: ${failedTitle} (${cause})`
         );
       }
     }
