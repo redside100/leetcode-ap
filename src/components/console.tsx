@@ -155,7 +155,7 @@ const Console = ({
 
   useEffect(() => {
     initializeLeetcode();
-    const interval = setInterval(updateLeetcode, 15000);
+    const interval = setInterval(updateLeetcode, 10000);
     return () => clearInterval(interval);
   }, []);
 
