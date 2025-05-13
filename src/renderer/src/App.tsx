@@ -40,6 +40,7 @@ function App() {
   useEffect(() => {
     if (socketUrl && slot && username) {
       setLoading(true)
+      setHasError(false)
       const options = password
         ? { password, tags: ['HintGame', 'DeathLink'] }
         : { tags: ['HintGame', 'DeathLink'] }
