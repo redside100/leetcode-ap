@@ -81,9 +81,11 @@ function App() {
   if (loading) {
     return (
       <Box display="flex" height="100%" width="100%" justifyContent="center" alignItems="center">
-        <Box display="flex" gap={1} alignItems="center">
+        <Box display="flex" gap={2} alignItems="center">
           <CircularProgress />
-          <Typography variant="h4">Connecting...</Typography>
+          <Typography variant="h4">
+            <strong>Connecting...</strong>
+          </Typography>
         </Box>
       </Box>
     )

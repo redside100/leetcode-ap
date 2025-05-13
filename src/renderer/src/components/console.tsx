@@ -75,7 +75,10 @@ const Console = ({
       .map((submission) => submission.titleSlug)
 
     const newSubmissions = submissions.filter(
-      (submission: any) => !previousSubmissionKeys.includes(getSubmissionKey(submission))
+      (submission: any) =>
+        !previousSubmissionKeys.includes(getSubmissionKey(submission)) &&
+        // if a submission is pending, for some reason it displays as "Internal Error"
+        submission.statusDisplay !== 'Internal Error'
     )
 
     // we have new submissions - process them
