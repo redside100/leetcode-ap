@@ -27,11 +27,11 @@ function App() {
 
   useEffect(() => {
     client.current = new Client()
-    client.current.messages.on('message', (content) => {
-      let message = content
-      if (content.includes('[Hint]')) {
-        message = message.split(',').join('').replace('(unspecified)', '').replace(/,/gi, '')
-      }
+    client.current.messages.on('message', (_, nodes) => {
+      const message = nodes
+        .map((node) => node.text)
+        .filter((text) => text !== '(unspecified)')
+        .join('')
       setMessageHistory((prev) => [...prev, message])
     })
     client.current.socket.on('disconnected', () => reset())
